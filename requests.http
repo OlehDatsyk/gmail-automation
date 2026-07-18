@@ -1,0 +1,92 @@
+### Gmail Automation Platform — sample requests
+### Install the "REST Client" VS Code extension, then click "Send Request" above any block.
+
+@baseUrl = http://localhost:8000
+
+### Health check
+GET {{baseUrl}}/health
+
+### Check Gmail auth status
+GET {{baseUrl}}/auth/status
+
+### Get the Google OAuth login URL (open the result in a browser)
+GET {{baseUrl}}/auth/google/authorization-url
+
+### List recent emails
+GET {{baseUrl}}/emails?max_results=5
+
+### Get a single email (replace with a real message_id from the list above)
+GET {{baseUrl}}/emails/REPLACE_WITH_MESSAGE_ID
+
+### Summarize an email
+POST {{baseUrl}}/emails/summarize
+Content-Type: application/json
+
+{
+  "message_id": "REPLACE_WITH_MESSAGE_ID"
+}
+
+### Categorize an email
+POST {{baseUrl}}/emails/categorize
+Content-Type: application/json
+
+{
+  "message_id": "REPLACE_WITH_MESSAGE_ID"
+}
+
+### Draft an auto-reply (does not send)
+POST {{baseUrl}}/emails/auto-reply
+Content-Type: application/json
+
+{
+  "message_id": "REPLACE_WITH_MESSAGE_ID",
+  "tone": "friendly",
+  "send": false
+}
+
+### Extract tasks from an email
+POST {{baseUrl}}/emails/extract-tasks
+Content-Type: application/json
+
+{
+  "message_id": "REPLACE_WITH_MESSAGE_ID"
+}
+
+### Translate an email
+POST {{baseUrl}}/emails/translate
+Content-Type: application/json
+
+{
+  "message_id": "REPLACE_WITH_MESSAGE_ID",
+  "target_language": "Spanish"
+}
+
+### Apply a label to an email
+POST {{baseUrl}}/emails/label
+Content-Type: application/json
+
+{
+  "message_id": "REPLACE_WITH_MESSAGE_ID",
+  "label_name": "Processed"
+}
+
+### Automation webhook (used by n8n / Zapier / Make)
+POST {{baseUrl}}/automation/webhook
+Content-Type: application/json
+
+{
+  "message_id": "REPLACE_WITH_MESSAGE_ID",
+  "actions": ["summarize", "categorize", "label"],
+  "label_name": "Automated",
+  "webhook_secret": "replace-with-a-random-webhook-secret"
+}
+
+### Run the full inbox-processing pipeline
+POST {{baseUrl}}/automation/process-inbox
+Content-Type: application/json
+
+{
+  "max_results": 5,
+  "apply_labels": true,
+  "auto_reply": false
+}

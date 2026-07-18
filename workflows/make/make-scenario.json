@@ -1,0 +1,108 @@
+{
+  "name": "Gmail Automation Platform - New Email Pipeline",
+  "flow": [
+    {
+      "id": 1,
+      "module": "google-email:TriggerNewEmail",
+      "version": 1,
+      "parameters": {
+        "account": "REPLACE_WITH_YOUR_MAKE_GMAIL_CONNECTION",
+        "folder": "INBOX",
+        "criteria": "UNREAD"
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": { "x": 0, "y": 0 },
+        "restore": {},
+        "label": "Watch Gmail Inbox (New Unread Email)"
+      }
+    },
+    {
+      "id": 2,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": {},
+      "mapper": {
+        "url": "http://localhost:8000/automation/webhook",
+        "method": "POST",
+        "headers": [
+          { "name": "Content-Type", "value": "application/json" }
+        ],
+        "qs": [],
+        "bodyType": "raw",
+        "parseResponse": true,
+        "contentType": "application/json",
+        "data": "{\"message_id\": \"{{1.id}}\", \"actions\": [\"summarize\", \"categorize\", \"extract_tasks\", \"label\"], \"label_name\": \"Processed\", \"webhook_secret\": \"REPLACE_WITH_YOUR_AUTOMATION_WEBHOOK_SECRET\"}"
+      },
+      "metadata": {
+        "designer": { "x": 300, "y": 0 },
+        "restore": {},
+        "label": "Call Gmail Automation Platform Webhook"
+      }
+    },
+    {
+      "id": 3,
+      "module": "builtin:BasicFeatureIterator",
+      "version": 1,
+      "filter": {
+        "name": "Only continue if category is Urgent",
+        "conditions": [
+          [
+            {
+              "a": "{{2.data.category}}",
+              "b": "Urgent",
+              "o": "text:equal"
+            }
+          ]
+        ]
+      },
+      "parameters": {},
+      "mapper": {},
+      "metadata": {
+        "designer": { "x": 600, "y": 0 },
+        "restore": {},
+        "label": "Filter: Urgent Emails Only"
+      }
+    },
+    {
+      "id": 4,
+      "module": "gmail:ActionSendEmail",
+      "version": 1,
+      "parameters": {
+        "account": "REPLACE_WITH_YOUR_MAKE_GMAIL_CONNECTION"
+      },
+      "mapper": {
+        "to": "REPLACE_WITH_NOTIFICATION_EMAIL",
+        "subject": "Urgent email needs attention: {{1.subject}}",
+        "content": "Summary: {{2.data.summary}}"
+      },
+      "metadata": {
+        "designer": { "x": 900, "y": 0 },
+        "restore": {},
+        "label": "Notify: Send Urgent Alert Email"
+      }
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "autoCommitTriggerLast": true,
+      "sequential": false,
+      "confidential": false,
+      "dataloss": false,
+      "dlq": false
+    },
+    "designer": { "orphans": [] },
+    "notes": [
+      "Import this file into Make via Scenarios > Create a new scenario > Import Blueprint.",
+      "Replace all REPLACE_WITH_* placeholders after import.",
+      "Module 1 requires a Gmail connection authorized inside Make.",
+      "Module 2 sends the new message's ID to the Gmail Automation Platform's /automation/webhook endpoint.",
+      "If running the FastAPI app locally, expose it with a tunnel (e.g. ngrok) so Make's cloud servers can reach it."
+    ]
+  }
+}

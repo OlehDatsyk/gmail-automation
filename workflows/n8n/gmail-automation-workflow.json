@@ -1,0 +1,150 @@
+{
+  "name": "Gmail Automation Platform - New Email Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "labelIds": ["UNREAD"]
+        },
+        "options": {}
+      },
+      "id": "1f2a3b4c-0001-4a1a-9c1a-000000000001",
+      "name": "Gmail Trigger - New Email",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_WITH_YOUR_N8N_GMAIL_CREDENTIAL_ID",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/automation/webhook",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"message_id\": $json.id, \"actions\": [\"summarize\", \"categorize\", \"extract_tasks\", \"label\"], \"label_name\": \"Processed\", \"webhook_secret\": \"REPLACE_WITH_YOUR_AUTOMATION_WEBHOOK_SECRET\" } }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "1f2a3b4c-0002-4a1a-9c1a-000000000002",
+      "name": "Process Email (Gmail Automation Platform)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-urgent",
+              "leftValue": "={{ $json.category }}",
+              "rightValue": "Urgent",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "1f2a3b4c-0003-4a1a-9c1a-000000000003",
+      "name": "Is Urgent?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [800, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/REPLACE/WITH/YOUR_SLACK_WEBHOOK",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"text\": \"Urgent email received: \" + $json.summary } }}",
+        "options": {}
+      },
+      "id": "1f2a3b4c-0004-4a1a-9c1a-000000000004",
+      "name": "Notify Slack (Optional)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1080, 220]
+    },
+    {
+      "parameters": {},
+      "id": "1f2a3b4c-0005-4a1a-9c1a-000000000005",
+      "name": "No Action",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1080, 400]
+    }
+  ],
+  "connections": {
+    "Gmail Trigger - New Email": {
+      "main": [
+        [
+          {
+            "node": "Process Email (Gmail Automation Platform)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Email (Gmail Automation Platform)": {
+      "main": [
+        [
+          {
+            "node": "Is Urgent?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Urgent?": {
+      "main": [
+        [
+          {
+            "node": "Notify Slack (Optional)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {}
+}
